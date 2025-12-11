@@ -1,0 +1,104 @@
+{
+  "name": "AI Note Summary Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "notes",
+        "methods": [
+          "POST"
+        ]
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "text": "請將以下內容整理成：\n1. 標題（不超過20字）\n2. 摘要（不超過60字）\n---\n{{$json.text}}",
+            "role": "user"
+          }
+        ]
+      },
+      "name": "OpenAI Chat",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "credentials": {
+        "openAIApi": "Your OpenAI Credential"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "YOUR_SHEET_ID",
+        "range": "Notes!A:D",
+        "valueInputMode": "RAW",
+        "values": [
+          [
+            "={{$now}}",
+            "={{$json[\"choices\"][0][\"message\"][\"parsed\"].title}}",
+            "={{$json[\"choices\"][0][\"message\"][\"parsed\"].summary}}",
+            "={{$node[\"Webhook\"].json[\"text\"]}}"
+          ]
+        ]
+      },
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": "Your Google Sheet OAuth"
+      }
+    },
+    {
+      "parameters": {
+        "statusCode": 200,
+        "responseBody": "已成功整理文章並儲存至 Google Sheet！"
+      },
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        950,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          "OpenAI Chat"
+        ]
+      ]
+    },
+    "OpenAI Chat": {
+      "main": [
+        [
+          "Google Sheets"
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          "Response"
+        ]
+      ]
+    }
+  }
+}
